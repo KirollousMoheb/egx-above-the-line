@@ -327,6 +327,8 @@ def build(progress=None):
         "breadth": breadth(calendar, series, groups),
     }
     _write_json(MARKET_FILE, market)
+    # Tiny file an open page polls to learn that market.json changed, without re-downloading it.
+    _write_json(os.path.join(DATA_DIR, "version.json"), {"generated": market["meta"]["generated"]})
     progress("Done")
     return market
 

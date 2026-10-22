@@ -16,9 +16,11 @@ You only need Python 3.9+. There's nothing to pip-install and no API keys.
 
 `.github/workflows/pages.yml` publishes `web/` to GitHub Pages at `https://<user>.github.io/<repo>/`. It runs:
 
-- Sunday to Thursday at 13:45 UTC, after the EGX close.
+- Every hour of the trading day: 10:05, 11:05 … 15:05 Cairo time, Sunday to Thursday, and never on Friday or Saturday. GitHub's cron only understands UTC, and Egypt switches between UTC+3 and UTC+2, so the cron fires 07:05–13:05 UTC and a small `gate` job skips any run that falls outside 10:00–15:59 in Cairo. Nothing needs changing when the clocks change. GitHub sometimes starts scheduled runs late, by up to about 15 minutes.
 - On every push to `main`.
 - On demand, from **Actions → Build data and publish → Run workflow**.
+
+An open page checks `data/version.json` every 5 minutes, and whenever you return to the tab. If the data is newer, it reloads it in place.
 
 Each run downloads fresh data with `egx_data.py` and deploys it. The generated data is never committed. GitHub's cache carries the previous run's candles forward, so a symbol that fails to download keeps its last data.
 

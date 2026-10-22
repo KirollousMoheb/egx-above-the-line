@@ -1,12 +1,14 @@
 # Rebuilds the market data and publishes web/ to GitHub Pages.
-# Runs after every EGX session, on every push to main, and on demand (Actions tab > Run workflow).
+# Runs hourly through the EGX day (10:05-15:05 Cairo, Sun-Thu), on every push to main,
+# and on demand (Actions tab > Run workflow).
 name: Build data and publish
 
 on:
   schedule:
-    # 13:45 UTC Sun-Thu = 15:45-16:45 Cairo, after the 14:30 close and the feed's 15-minute delay.
-    # GitHub may start scheduled runs some minutes late.
-    - cron: "45 13 * * 0-4"
+    # Cron is UTC only and Cairo is UTC+3 in summer, UTC+2 in winter, so this covers both
+    # (07:05-13:05 UTC) and the gate job below skips whatever falls outside 10:00-15:59 Cairo.
+    # Five past the hour because GitHub delays on-the-hour schedules most under load.
+    - cron: "5 7-13 * * 0-4"
   push:
     branches: [main]
   workflow_dispatch:
@@ -21,7 +23,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          day=$(TZ=Africa/Cairo date +%u)    # 1 = Monday ... 5 = Friday, 6 = Saturday, 7 = Sunday
+          hour=$(TZ=Africa/Cairo date +%-H)
+          if [ "$EVENT" != "schedule" ]; then run=true
+          elif [ "$day" -eq 5 ] || [ "$day" -eq 6 ] || [ "$hour" -lt 10 ] || [ "$hour" -gt 15 ]; then run=false
+          else run=true; fi
+          echo "Cairo time $(TZ=Africa/Cairo date '+%a %H:%M'), $EVENT -> run=$run"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

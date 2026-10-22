@@ -201,7 +201,16 @@
 
   function renderMast() {
     const meta = DATA.meta;
-    $('#dateline').textContent = fmt.longDate(meta.asOf);
+    // The date is the last trading session, not today: EGX trades Sunday to Thursday.
+    const cairoToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
+    const cairoDay = new Date().toLocaleDateString('en-US', { timeZone: 'Africa/Cairo', weekday: 'long' });
+    const long = fmt.longDate(meta.asOf);
+    $('#dateline').replaceChildren(meta.asOf === cairoToday ? 'Today · ' : 'Last session · ',
+      h('span', { class: 'd-long', text: long }),
+      h('span', { class: 'd-short', text: `${long.slice(0, 3)} ${fmt.dateShort(meta.asOf)}` }));
+    $('#dateline').title = meta.asOf === cairoToday ? ''
+      : cairoDay === 'Friday' || cairoDay === 'Saturday' ? 'The EGX is closed today; it trades Sunday to Thursday.'
+      : 'Prices from the most recent EGX session.';
     // generated is a UTC timestamp (the hosted build runs in UTC); show it in the reader's own time
     const t = new Date(meta.generated);
     const time = t.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -864,6 +873,22 @@
     polling = false;
   }
 
+  /* ------------------------------------------------------------ hosted: pick up new data */
+
+  // On the hosted site a scheduled job republishes the data every hour of the trading day.
+  // An open page checks a tiny version file and reloads the data in place when it changes.
+  async function checkForNewData() {
+    if (document.visibilityState !== 'visible') return;
+    if (!DATA) { await loadData(); return; }
+    let v;
+    try { v = await getJSON('data/version.json'); } catch (e) { return; }
+    if (!v.generated || v.generated === DATA.meta.generated) return;
+    $('#main').classList.add('reloading');
+    const ok = await loadData();
+    $('#main').classList.remove('reloading');
+    if (ok) toast(`New prices loaded (${$('#freshness').textContent.replace(/^Updated/, 'updated')}).`);
+  }
+
   /* ------------------------------------------------------------ start */
 
   async function init() {
@@ -876,10 +901,17 @@
     bindTheme();
 
     let status = null;
-    try { status = await getJSON('api/status'); SERVER = true; } catch (e) { SERVER = false; }
+    // Only the local server (server.py, bound to 127.0.0.1) has an API; don't probe for it on the hosted site.
+    if (['127.0.0.1', 'localhost'].includes(location.hostname)) {
+      try { status = await getJSON('api/status'); SERVER = true; } catch (e) { SERVER = false; }
+    }
     // Hosted as static files (GitHub Pages) there is no server to rebuild the data; a scheduled job does it.
     $('#refreshBtn').hidden = !SERVER;
     const ok = await loadData();
+    if (!SERVER) {
+      setInterval(checkForNewData, 5 * 60 * 1000);
+      document.addEventListener('visibilitychange', checkForNewData);
+    }
     if (ok) {
       routeFromHash();
       if (status && status.running) poll();
