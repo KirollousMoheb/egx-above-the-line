@@ -201,22 +201,28 @@
 
   function renderMast() {
     const meta = DATA.meta;
-    // The date is the last trading session, not today: EGX trades Sunday to Thursday.
-    const cairoToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
-    const cairoDay = new Date().toLocaleDateString('en-US', { timeZone: 'Africa/Cairo', weekday: 'long' });
-    const long = fmt.longDate(meta.asOf);
-    $('#dateline').replaceChildren(meta.asOf === cairoToday ? 'Today · ' : 'Last session · ',
-      h('span', { class: 'd-long', text: long }),
-      h('span', { class: 'd-short', text: `${long.slice(0, 3)} ${fmt.dateShort(meta.asOf)}` }));
-    $('#dateline').title = meta.asOf === cairoToday ? ''
-      : cairoDay === 'Friday' || cairoDay === 'Saturday' ? 'The EGX is closed today; it trades Sunday to Thursday.'
-      : 'Prices from the most recent EGX session.';
-    // generated is a UTC timestamp (the hosted build runs in UTC); show it in the reader's own time
-    const t = new Date(meta.generated);
+    // Centre: today's date in Cairo, like a newspaper. Right: which session the prices are from,
+    // because EGX trades Sunday to Thursday and on other days the latest prices are older.
+    const now = new Date();
+    const cairoToday = now.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
+    const cairoDay = now.toLocaleDateString('en-US', { timeZone: 'Africa/Cairo', weekday: 'long' });
+    const today = fmt.longDate(cairoToday);
+    $('#dateline').replaceChildren(
+      h('span', { class: 'd-long', text: today }),
+      h('span', { class: 'd-short', text: `${today.slice(0, 3)} ${fmt.dateShort(cairoToday)}` }),
+      cairoDay === 'Friday' || cairoDay === 'Saturday' ? h('span', { class: 'd-long', text: ' · market closed' }) : null);
+    const session = fmt.longDate(meta.asOf);
+    const fresh = $('#freshness');
+    fresh.textContent = meta.asOf === cairoToday ? `Updated ${updatedAt()}` : `Prices of ${session.slice(0, 3)} ${fmt.dateShort(meta.asOf)}`;
+    fresh.title = `Prices from the EGX session of ${session}, downloaded at ${updatedAt()}.`
+      + (SERVER ? '' : ' Updates hourly 10:00–15:00 Cairo time, Sunday to Thursday.');
+  }
+
+  // meta.generated is a UTC timestamp (the hosted build runs in UTC); show it in the reader's own time.
+  function updatedAt() {
+    const t = new Date(DATA.meta.generated);
     const time = t.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const sameDay = t.toDateString() === new Date().toDateString();
-    $('#freshness').textContent = `Updated ${time}${sameDay ? '' : `, ${t.getDate()} ${MONTHS[t.getMonth()]}`}`;
-    $('#freshness').title = SERVER ? '' : 'Prices update automatically after each EGX session';
+    return t.toDateString() === new Date().toDateString() ? time : `${time}, ${t.getDate()} ${MONTHS[t.getMonth()]}`;
   }
 
   function renderFoot() {
@@ -886,7 +892,7 @@
     $('#main').classList.add('reloading');
     const ok = await loadData();
     $('#main').classList.remove('reloading');
-    if (ok) toast(`New prices loaded (${$('#freshness').textContent.replace(/^Updated/, 'updated')}).`);
+    if (ok) toast(`New prices loaded (updated ${updatedAt()}).`);
   }
 
   /* ------------------------------------------------------------ start */

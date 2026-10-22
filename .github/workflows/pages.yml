@@ -62,6 +62,11 @@ jobs:
       - name: Build market data
         run: python egx_data.py
 
+      # Pages lets browsers keep files for 10 minutes. Per-commit asset URLs make a fresh
+      # index.html always load its matching code instead of a cached older app.js.
+      - name: Version asset URLs
+        run: sed -i -E 's/(href="style\.css|src="(charts|app)\.js)"/\1?v=${{ github.sha }}"/g' web/index.html
+
       - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5
