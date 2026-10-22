@@ -1,0 +1,19 @@
+{
+  "as_of": "2026-09-01",
+  "source": "EGX semi-annual index review effective 1 Sep 2026. Constituents read from Investing.com's EGX 30 and EGX 70 EWI component pages on 22 Oct 2026 and mapped to EGX tickers.",
+  "note": "EGX100 EWI = EGX30 + EGX70 EWI, so it is derived, not listed. EGX reviews the indices every six months (changes take effect around 1 Mar and 1 Sep); edit these lists after each review. VLMR and VLMRA are two share classes of Valmore Holding, which is why EGX30 has 31 tickers.",
+  "EGX30": [
+    "ABUK", "ADIB", "ALCN", "AMOC", "BTFH", "CCAP", "CLHO", "COMI", "EAST", "EFID", "EFIH",
+    "EGAL", "EMFD", "ETEL", "FWRY", "GBCO", "HELI", "HRHO", "ISPH", "JUFO", "MCQE", "MFPC",
+    "ORAS", "ORHD", "PHDC", "RAYA", "RMDA", "SKPC", "TMGH", "VLMR", "VLMRA"
+  ],
+  "EGX70": [
+    "ACTF", "AIDC", "AIFI", "AIH", "AMER", "AMIA", "ARAB", "ARCC", "ASCM", "ASPI", "ATLC",
+    "ATQA", "BONY", "CIEB", "CNFN", "COSG", "CSAG", "DAPH", "DSCW", "EGCH", "EGTS", "EHDR",
+    "ELEC", "ELKA", "ELSH", "ENGC", "ETRS", "EXPA", "GDWA", "GOUR", "GPIM", "HDBK", "ICFC",
+    "IDRE", "IEEC", "ISMA", "ISMQ", "KABO", "LCSW", "MASR", "MBSC", "MCRO", "MEPA", "MOED",
+    "MPCI", "MPCO", "MPRC", "MTIE", "NCCW", "NIPH", "OBRI", "OCDI", "OFH", "OIH", "ORWE",
+    "PHAR", "POUL", "PRCL", "PRDC", "SCEM", "SDTI", "SIPC", "SVCE", "SWDY", "TAQA", "UEGC",
+    "UNIP", "VALU", "ZEOT", "ZMID"
+  ]
+}

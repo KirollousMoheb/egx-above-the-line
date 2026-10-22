@@ -1,0 +1,58 @@
+# Rebuilds the market data and publishes web/ to GitHub Pages.
+# Runs after every EGX session, on every push to main, and on demand (Actions tab > Run workflow).
+name: Build data and publish
+
+on:
+  schedule:
+    # 13:45 UTC Sun-Thu = 15:45-16:45 Cairo, after the 14:30 close and the feed's 15-minute delay.
+    # GitHub may start scheduled runs some minutes late.
+    - cron: "45 13 * * 0-4"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # Last run's candles: if a symbol fails to download, the build reuses its previous data.
+      - uses: actions/cache@v6
+        with:
+          path: web/data
+          key: market-data-${{ github.run_id }}
+          restore-keys: market-data-
+
+      - name: Build market data
+        run: python egx_data.py
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

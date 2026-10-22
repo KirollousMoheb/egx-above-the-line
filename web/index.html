@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Above the Line · EGX</title>
+<meta name="description" content="Egyptian stocks measured against their 200- and 50-day moving averages.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%23FBF8F1'/%3E%3Cpath d='M3 22 C10 21 16 19 29 14' stroke='%232E5BB0' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='21' cy='9' r='3.5' fill='%231D1B17'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,700;1,6..72,400;1,6..72,500&display=swap">
+<link rel="stylesheet" href="style.css">
+<script>
+  // Apply the saved edition before first paint so the page never flashes the wrong theme.
+  try { const t = localStorage.getItem('atl.theme'); if (t) document.documentElement.dataset.theme = JSON.parse(t); } catch (e) {}
+</script>
+</head>
+<body>
+
+<header class="mast">
+  <div class="mast-strip">
+    <span>EGX · Cairo</span>
+    <span id="dateline">&nbsp;</span>
+    <span id="freshness">&nbsp;</span>
+  </div>
+  <div class="mast-title">
+    <h1>Above <i>the</i> Line</h1>
+    <p class="mast-ar" lang="ar" dir="rtl">البورصة المصرية · فوق متوسط المئتي يوم</p>
+  </div>
+  <div class="mast-foot">
+    <p>Every Egyptian stock, measured against its 200- and 50-day moving averages.</p>
+    <div class="mast-actions">
+      <button class="btn" id="refreshBtn" type="button">Refresh data</button>
+      <button class="btn ghost" id="themeBtn" type="button">Night edition</button>
+    </div>
+  </div>
+  <div class="progress" id="progress" hidden>
+    <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+    <span class="progress-label" id="progressLabel"></span>
+  </div>
+</header>
+
+<div class="first-run" id="firstRun" hidden>
+  <p class="kicker">First edition</p>
+  <h2>Setting the type&hellip;</h2>
+  <p id="firstRunText">Downloading five years of daily candles for every EGX stock. This takes about a minute and only happens once; afterwards use <b>Refresh data</b>.</p>
+</div>
+
+<section class="front" id="front" aria-label="Market breadth" hidden>
+  <div class="hero">
+    <p class="kicker"><span id="scopeLabel">All EGX</span> · breadth</p>
+    <p class="hero-fig"><span id="heroPct">&nbsp;</span><span class="unit">%</span></p>
+    <p class="hero-cap"><b id="heroCount"></b> close above their 200-day average.</p>
+    <div class="facts" id="facts"></div>
+  </div>
+  <figure class="breadth">
+    <figcaption>
+      <span class="fig-title">Share of stocks above their averages</span>
+      <span class="keys"><span><i class="key s200"></i>200-day</span><span><i class="key s50"></i>50-day</span></span>
+    </figcaption>
+    <p class="readout" id="breadthReadout">&nbsp;</p>
+    <div class="breadth-chart" id="breadthChart"></div>
+  </figure>
+  <div class="tiles" id="indexTiles" aria-label="Indices"></div>
+</section>
+
+<nav class="controls" id="controls" aria-label="Filter stocks" hidden>
+  <div class="row">
+    <div class="seg" data-key="index" role="group" aria-label="Index">
+      <button type="button" data-v="ALL">All EGX</button>
+      <button type="button" data-v="EGX30">EGX30</button>
+      <button type="button" data-v="EGX70">EGX70</button>
+      <button type="button" data-v="EGX100">EGX100</button>
+      <button type="button" data-v="OTHER">Outside EGX100</button>
+    </div>
+    <div class="seg" data-key="trend" role="group" aria-label="Trend">
+      <button type="button" data-v="any">Any trend</button>
+      <button type="button" data-v="a200">Above 200d</button>
+      <button type="button" data-v="a50">Above 50d</button>
+      <button type="button" data-v="both">Above both</button>
+      <button type="button" data-v="b200">Below 200d</button>
+    </div>
+    <label class="search">
+      <span class="sr">Search</span>
+      <input type="search" id="q" placeholder="Ticker or company" autocomplete="off" spellcheck="false">
+      <kbd>/</kbd>
+    </label>
+  </div>
+  <div class="row row-2">
+    <label class="sel"><span>Signal</span><select id="fSignal"></select></label>
+    <label class="sel"><span>Sector</span><select id="fSector"></select></label>
+    <label class="sel"><span>Liquidity</span><select id="fLiq"></select></label>
+    <label class="sel"><span>Sort</span><select id="fSort"></select></label>
+    <button type="button" class="chip-btn" id="dirBtn" title="Reverse the order"></button>
+    <button type="button" class="chip-btn" id="watchBtn" aria-pressed="false">★ Watchlist <span id="watchCount"></span></button>
+    <span class="spacer"></span>
+    <span class="count" id="count" aria-live="polite"></span>
+    <div class="seg small" data-key="view" role="group" aria-label="View">
+      <button type="button" data-v="cards">Cards</button>
+      <button type="button" data-v="table">Table</button>
+    </div>
+    <button type="button" class="chip-btn" id="csvBtn">Export CSV</button>
+    <button type="button" class="chip-btn quiet" id="resetBtn">Reset</button>
+  </div>
+</nav>
+
+<main id="main" hidden>
+  <div class="list-head">
+    <h2 id="listTitle">The list</h2>
+    <p class="list-key">
+      <span><i class="key price"></i>Price</span>
+      <span><i class="key s50"></i>50-day</span>
+      <span><i class="key s200"></i>200-day</span>
+      <span class="gauge-key"><i class="gauge-demo"><b></b></i>Bars show distance from each average: right is above, left is below</span>
+    </p>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="table-wrap" id="tableWrap" hidden>
+    <table class="list-table" id="table"></table>
+  </div>
+  <div class="empty" id="empty" hidden>
+    <p>No stock matches these filters.</p>
+    <button type="button" class="btn ghost" id="emptyReset">Clear filters</button>
+  </div>
+</main>
+
+<footer class="foot" id="foot" hidden>
+  <div class="foot-cols">
+    <p><b>Prices.</b> TradingView's public screener and chart feed: free, unofficial, delayed about 15 minutes. Fine for personal use, not for redistribution.</p>
+    <p><b>Averages.</b> Simple moving averages of daily closes, computed here from split-adjusted bars. A stock without 200 sessions of history has no 200-day line yet.</p>
+    <p><b>Index membership.</b> <span id="membershipNote"></span> EGX100 EWI is EGX30 plus EGX70 EWI. Edit <code>index_membership.json</code> after each semi-annual review.</p>
+    <p><b>Charts.</b> TradingView Lightweight Charts&trade;, Apache 2.0. Nothing here is investment advice.</p>
+  </div>
+  <div class="notes" id="notes" hidden></div>
+</footer>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sTitle" hidden>
+  <div class="sheet-inner">
+    <header class="sheet-bar">
+      <button type="button" class="btn ghost" id="sBack">&larr; Back to list <kbd>Esc</kbd></button>
+      <div class="s-nav">
+        <button type="button" class="icon-btn" id="sPrev" aria-label="Previous stock" title="Previous (&larr;)">&lsaquo;</button>
+        <span id="sPos"></span>
+        <button type="button" class="icon-btn" id="sNext" aria-label="Next stock" title="Next (&rarr;)">&rsaquo;</button>
+      </div>
+    </header>
+    <div class="s-id">
+      <div class="s-title">
+        <p class="kicker" id="sKicker"></p>
+        <h2 id="sTitle"><span class="tk" id="sTicker"></span> <span class="nm" id="sName"></span></h2>
+      </div>
+      <div class="s-price">
+        <span class="s-close" id="sClose"></span>
+        <span class="delta" id="sChg"></span>
+        <span class="s-date" id="sDate"></span>
+      </div>
+      <div class="s-actions">
+        <button type="button" class="chip-btn" id="sStar" aria-pressed="false"></button>
+        <a class="chip-btn" id="sTv" target="_blank" rel="noopener noreferrer">TradingView &nearr;</a>
+      </div>
+    </div>
+    <div class="s-body">
+      <section class="s-chart" aria-label="Price chart">
+        <div class="toolbar">
+          <div class="seg small" id="sRange" role="group" aria-label="Time range">
+            <button type="button" data-v="3M">3M</button>
+            <button type="button" data-v="6M">6M</button>
+            <button type="button" data-v="1Y">1Y</button>
+            <button type="button" data-v="2Y">2Y</button>
+            <button type="button" data-v="ALL">5Y</button>
+          </div>
+          <div class="toggles" id="sToggles">
+            <button type="button" class="tog" data-t="s50"><i class="key s50"></i>50-day</button>
+            <button type="button" class="tog" data-t="s200"><i class="key s200"></i>200-day</button>
+            <button type="button" class="tog" data-t="vol">Volume</button>
+            <button type="button" class="tog" data-t="cross" title="Golden and death crosses of the 50-day over the 200-day">Crosses</button>
+            <button type="button" class="tog" data-t="px" title="Every close that crossed the 200-day">Price &times; 200d</button>
+            <button type="button" class="tog" data-t="log" title="Logarithmic price scale">Log</button>
+          </div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-host" id="bigChart"></div>
+          <div class="legend" id="legend" aria-live="off"></div>
+          <div class="chart-msg" id="chartMsg" hidden></div>
+        </div>
+        <details class="s-table">
+          <summary>Last 30 sessions as a table</summary>
+          <div class="table-scroll"><table class="list-table compact" id="sTable"></table></div>
+        </details>
+      </section>
+      <aside class="s-facts" id="sFacts" aria-label="Key figures"></aside>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="vendor/lightweight-charts.standalone.production.js"></script>
+<script src="charts.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
